@@ -1,0 +1,10 @@
+# requirements.txt
+
+# Para baixar dados do OpenStretMap e construir os grafos
+osmnx
+# Para manipulação de grafos e algoritmos de roteamento
+networkx
+# Para cálculos de distância geográfica
+haversine
+# Para visualização dos grafos
+matplotlib

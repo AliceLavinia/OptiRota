@@ -9,15 +9,16 @@ class filaPrioridade:
   def __init__(self):
     self.elements = []
 
-    def is_empty(self):
-      return not self.elements
-    def put(self, item, prioridade):
-      """Adiciona um item à fila com uma certa prioridade."""
-      heapq.heappush(self.elements, (prioridade, item))
+  def is_empty(self):
+    return not self.elements
+    
+  def put(self, item, prioridade):
+    """Adiciona um item à fila com uma certa prioridade."""
+    heapq.heappush(self.elements, (prioridade, item))
 
-      def get(self):
-        """Remove e retorna o item com a menor prioridade."""
-        return heapq.heappop(self.elements)[1]
+  def get(self):
+    """Remove e retorna o item com a menor prioridade."""
+    return heapq.heappop(self.elements)[1]
 
 class Fila:
   """Implementa uma fila padrão FIFO(gerenciar pedidos de entrega)"""
@@ -31,9 +32,9 @@ class Fila:
     """Adiciona um item ao final da fila."""
     self.elements.append(item)
 
-    def dequeue(self):
-      """Remove e retorna o item do início da fila."""
-      return self.elements.popleft()
+  def dequeue(self):
+    """Remove e retorna o item do início da fila."""
+    return self.elements.popleft()
     
 class Pilha:
   """Implementa uma pilha padrão LIFO(para reconstruir os caminhos encontrados pelos algoritmos)"""

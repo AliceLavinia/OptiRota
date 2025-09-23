@@ -2,7 +2,6 @@ from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass
 from datastructures import filaPrioridade, Fila, Pilha
 import networkx as nx
-import numpy as np
 from abc import ABC, abstractmethod
 
 @dataclass

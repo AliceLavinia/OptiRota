@@ -204,7 +204,10 @@ def validate_graph_for_a_star(graph: nx.DiGraph) -> bool:
         True se o grafo é válido, False caso contrário
     """
     
-    for data in graph.edges(data=True):
+    if not isinstance(graph, nx.DiGraph):
+        return False
+    
+    for u, v, data in graph.edges(data=True):
         weight = data.get('length', data.get('weight', 1.0))
         if weight < 0:
             return False

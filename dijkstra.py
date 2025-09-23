@@ -114,7 +114,7 @@ def get_shortest_distance(graph: nx.DiGraph,
     Returns:
         Distância mínima ou float('inf') se não houver caminho
     """
-    distance = find_path_dijkstra(graph, start, end)
+    path, distance = find_path_dijkstra(graph, start, end)
     return distance
 
 def get_all_shortest_distances(graph: nx.DiGraph, 
@@ -178,7 +178,7 @@ def validate_graph_for_dijkstra(graph: nx.DiGraph) -> bool:
     if not isinstance(graph, nx.DiGraph):
         return False
     
-    for data in graph.edges(data=True):
+    for u, v, data in graph.edges(data=True):
         weight = data.get('length', data.get('weight', 1.0))
         if weight < 0:
             return False

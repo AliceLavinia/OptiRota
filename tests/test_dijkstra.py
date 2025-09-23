@@ -166,12 +166,12 @@ class TestDijkstraPerformance(unittest.TestCase):
                 # Conecta com vizinho da direita
                 if j < size - 1:
                     right = i * size + (j + 1)
-                    graph.add_edge(current, right, {'length': 1.0})
+                    graph.add_edge(current, right, length=1.0)
                 
                 # Conecta com vizinho de baixo
                 if i < size - 1:
                     down = (i + 1) * size + j
-                    graph.add_edge(current, down, {'length': 1.0})
+                    graph.add_edge(current, down, length=1.0)
         
         # Testa caminho de canto superior esquerdo para canto inferior direito
         start = 0

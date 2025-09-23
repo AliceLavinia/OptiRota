@@ -29,7 +29,7 @@ def compute_cost_matrix(graph: nx.DiGraph,
         - 'paths': (opcional) Dicionário de caminhos completos
     """
     if not nodes:
-        return {'matrix': np.array([]), 'node_index': {}, 'paths': {}}
+        return {'matrix': np.array([]), 'node_index': {}, 'nodes': [], 'paths': {}}
     
     unique_nodes = list(dict.fromkeys(nodes))
     n = len(unique_nodes)

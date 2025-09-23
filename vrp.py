@@ -14,7 +14,7 @@ class DeliveryRequest:
     delivery_location: Tuple[float, float] 
     pickup_node: Optional[int] = None 
     delivery_node: Optional[int] = None 
-    weight: float = 1.0  # peso da carga
+    weight: float = 1.0  
     time_window_start: Optional[float] = None  
     time_window_end: Optional[float] = None  
     priority: int = 1  
@@ -173,7 +173,7 @@ class NearestNeighborVRP(VRPAlgorithm):
                 if distance < min_distance and distance != float('inf'):
                     min_distance = distance
                     nearest_delivery = delivery
-                    print(f"Debug: Delivery {delivery.id} distance: {distance:.2f}km")
+                    print(f"Debug: Delivery {delivery.id} distancia: {distance:.2f}km")
             except Exception as e:
                 print(f"Debug: Pathfinding falhou no delivery {delivery.id}: {e}")
                 continue
@@ -265,7 +265,7 @@ class VRPManager:
                                deliveries: List[DeliveryRequest],
                                depot_location: Tuple[float, float]) -> int:
         """Mapeia localizações geográficas para nós do grafo."""
-        print("Debug: Mapping delivery locations to graph nodes...")
+        print("Debug: mapeando delivery para no nós do grafo...")
         node_mapping = {} 
         
         for delivery in deliveries:
@@ -276,8 +276,8 @@ class VRPManager:
             delivery.delivery_node = self.graph_parser.get_closest_node(
                 delivery.delivery_location[0], delivery.delivery_location[1]
             )
-            print(f"Debug: Delivery {delivery.id}: pickup=({delivery.pickup_location[0]:.4f}, {delivery.pickup_location[1]:.4f}) -> node {delivery.pickup_node}")
-            print(f"Debug: Delivery {delivery.id}: delivery=({delivery.delivery_location[0]:.4f}, {delivery.delivery_location[1]:.4f}) -> node {delivery.delivery_node}")
+            print(f"Debug: Delivery {delivery.id}: recolhido=({delivery.pickup_location[0]:.4f}, {delivery.pickup_location[1]:.4f}) -> no {delivery.pickup_node}")
+            print(f"Debug: Delivery {delivery.id}: delivery=({delivery.delivery_location[0]:.4f}, {delivery.delivery_location[1]:.4f}) -> no {delivery.delivery_node}")
             
             if delivery.delivery_node not in node_mapping:
                 node_mapping[delivery.delivery_node] = []
@@ -285,10 +285,10 @@ class VRPManager:
         
         for node, delivery_ids in node_mapping.items():
             if len(delivery_ids) > 1:
-                print(f"Warning: Multiple deliveries ({delivery_ids}) map to the same node {node}")
+                print(f"Atencao: Multiplas rotas ({delivery_ids}) apontam pro mesmo no {node}")
         
         depot_node = self.graph_parser.get_closest_node(depot_location[0], depot_location[1])
-        print(f"Debug: Depot ({depot_location[0]:.4f}, {depot_location[1]:.4f}) -> node {depot_node}")
+        print(f"Debug: Deposito ({depot_location[0]:.4f}, {depot_location[1]:.4f}) -> no {depot_node}")
         return depot_node
     
     def _validate_routes(self, routes: List[Route], vehicles: List[Vehicle]):

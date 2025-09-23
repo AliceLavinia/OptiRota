@@ -217,7 +217,7 @@ def print_cost_matrix(cost_matrix: np.ndarray,
     
     for i, source in enumerate(nodes):
         print(f"{source:4}: ", end="")
-        for j in enumerate(nodes):
+        for j, target in enumerate(nodes):
             if cost_matrix[i, j] == float('inf'):
                 print("     inf", end="")
             else:

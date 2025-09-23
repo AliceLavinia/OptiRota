@@ -2,8 +2,9 @@ from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass
 from datastructures import filaPrioridade, Fila, Pilha
 import networkx as nx
-import numpy as np
 from abc import ABC, abstractmethod
+from dijkstra import find_path_dijkstra
+from a_star import find_path_a_star
 
 @dataclass
 class DeliveryRequest:
@@ -13,7 +14,7 @@ class DeliveryRequest:
     delivery_location: Tuple[float, float] 
     pickup_node: Optional[int] = None 
     delivery_node: Optional[int] = None 
-    weight: float = 1.0  # peso da carga
+    weight: float = 1.0  
     time_window_start: Optional[float] = None  
     time_window_end: Optional[float] = None  
     priority: int = 1  
@@ -61,10 +62,11 @@ class NearestNeighborVRP(VRPAlgorithm):
               graph: nx.DiGraph,
               vehicles: List[Vehicle],
               deliveries: List[DeliveryRequest],
-              depot_location: Tuple[float, float]) -> List[Route]:
+              depot_location: Tuple[float, float],
+              depot_node: int = None) -> List[Route]:
         """Resolve o VRP usando Nearest Neighbor."""
         self.graph = graph
-        self.depot_node = self._find_depot_node(depot_location)
+        self.depot_node = depot_node if depot_node is not None else self._find_depot_node(depot_location)
         
         routes = []
         remaining_deliveries = deliveries.copy()
@@ -77,13 +79,20 @@ class NearestNeighborVRP(VRPAlgorithm):
             if route.deliveries:
                 routes.append(route)
                 for delivery in route.deliveries:
-                    remaining_deliveries.remove(delivery)
+                    if delivery in remaining_deliveries:
+                        remaining_deliveries.remove(delivery)
         
         return routes
     
     def _find_depot_node(self, depot_location: Tuple[float, float]) -> int:
         """Encontra o nó do depósito mais próximo."""
-        return 0  
+        from graph_parser import GraphParser
+
+        if self.graph is None:
+            return 0
+        
+        import osmnx as ox
+        return ox.distance.nearest_nodes(self.graph, X=depot_location[1], Y=depot_location[0])  
     
     def _build_route_nearest_neighbor(self, 
                                     vehicle: Vehicle, 
@@ -94,19 +103,40 @@ class NearestNeighborVRP(VRPAlgorithm):
         current_load = 0.0
         total_distance = 0.0
         
-        while deliveries and current_load < vehicle.capacity:
+        available_deliveries = deliveries.copy()
+        
+        while available_deliveries and current_load < vehicle.capacity:
             nearest_delivery = self._find_nearest_delivery(
-                current_node, deliveries, vehicle.capacity - current_load
+                current_node, available_deliveries, vehicle.capacity - current_load
             )
             
             if nearest_delivery is None:
                 break
             
             if current_load + nearest_delivery.weight <= vehicle.capacity:
-                route_deliveries.append(nearest_delivery)
-                current_load += nearest_delivery.weight
-                total_distance += 1.0
-                deliveries.remove(nearest_delivery)
+                try:
+                    path_to_pickup = nx.shortest_path(self.graph, current_node, nearest_delivery.pickup_node, weight='length')
+                    distance_to_pickup = nx.shortest_path_length(self.graph, current_node, nearest_delivery.pickup_node, weight='length') / 1000.0  
+                    
+                    path_to_delivery = nx.shortest_path(self.graph, nearest_delivery.pickup_node, nearest_delivery.delivery_node, weight='length')
+                    distance_to_delivery = nx.shortest_path_length(self.graph, nearest_delivery.pickup_node, nearest_delivery.delivery_node, weight='length') / 1000.0  
+                    
+                    route_deliveries.append(nearest_delivery)
+                    current_load += nearest_delivery.weight
+                    total_distance += distance_to_pickup + distance_to_delivery
+                    current_node = nearest_delivery.delivery_node
+                    available_deliveries.remove(nearest_delivery)
+                except Exception:
+                    available_deliveries.remove(nearest_delivery)
+                    continue
+        
+        if route_deliveries and current_node != self.depot_node:
+            try:
+                return_path = nx.shortest_path(self.graph, current_node, self.depot_node, weight='length')
+                return_distance = nx.shortest_path_length(self.graph, current_node, self.depot_node, weight='length') / 1000.0  
+                total_distance += return_distance
+            except Exception:
+                pass
         
         return Route(
             vehicle_id=vehicle.id,
@@ -125,9 +155,35 @@ class NearestNeighborVRP(VRPAlgorithm):
         if not valid_deliveries:
             return None
         
-        # mplementação simplificada, só retorna a primeira válida
-        #em produção, calcular distância real usando Dijkstra/A*
-        return valid_deliveries[0]
+        nearest_delivery = None
+        min_distance = float('inf')
+        
+        for delivery in valid_deliveries:
+            try:
+                if not self.graph.has_node(current_node) or not self.graph.has_node(delivery.delivery_node):
+                    print(f"Debug: Nó não encontrado. Atual: {current_node}, delivery: {delivery.delivery_node}")
+                    continue
+               
+                try:
+                    path = nx.shortest_path(self.graph, current_node, delivery.delivery_node, weight='length')
+                    distance = nx.shortest_path_length(self.graph, current_node, delivery.delivery_node, weight='length') / 1000.0 
+                except nx.NetworkXNoPath:
+                    path, distance = find_path_dijkstra(self.graph, current_node, delivery.delivery_node)
+                    distance = distance / 1000.0 
+                if distance < min_distance and distance != float('inf'):
+                    min_distance = distance
+                    nearest_delivery = delivery
+                    print(f"Debug: Delivery {delivery.id} distancia: {distance:.2f}km")
+            except Exception as e:
+                print(f"Debug: Pathfinding falhou no delivery {delivery.id}: {e}")
+                continue
+        
+        if nearest_delivery:
+            print(f"Debug: Dellivery mais proximo encontrado {nearest_delivery.id} em {min_distance:.2f}km")
+        else:
+            print("Debug: Sem deliveries validos")
+        
+        return nearest_delivery
 
 class GeneticAlgorithmVRP(VRPAlgorithm):
     """Implementa algoritmo genético para VRP."""
@@ -177,10 +233,10 @@ class VRPManager:
         if not self._validate_inputs(vehicles, deliveries, depot_location):
             raise ValueError("Entradas inválidas para VRP")
         
-        self._map_locations_to_nodes(deliveries, depot_location)
+        depot_node = self._map_locations_to_nodes(deliveries, depot_location)
         
         algorithm_instance = self.algorithms[algorithm]
-        routes = algorithm_instance.solve(graph, vehicles, deliveries, depot_location)
+        routes = algorithm_instance.solve(graph, vehicles, deliveries, depot_location, depot_node)
         
         self._validate_routes(routes, vehicles)
         
@@ -207,8 +263,11 @@ class VRPManager:
     
     def _map_locations_to_nodes(self, 
                                deliveries: List[DeliveryRequest],
-                               depot_location: Tuple[float, float]):
+                               depot_location: Tuple[float, float]) -> int:
         """Mapeia localizações geográficas para nós do grafo."""
+        print("Debug: mapeando delivery para no nós do grafo...")
+        node_mapping = {} 
+        
         for delivery in deliveries:
             delivery.pickup_node = self.graph_parser.get_closest_node(
                 delivery.pickup_location[0], delivery.pickup_location[1]
@@ -217,6 +276,20 @@ class VRPManager:
             delivery.delivery_node = self.graph_parser.get_closest_node(
                 delivery.delivery_location[0], delivery.delivery_location[1]
             )
+            print(f"Debug: Delivery {delivery.id}: recolhido=({delivery.pickup_location[0]:.4f}, {delivery.pickup_location[1]:.4f}) -> no {delivery.pickup_node}")
+            print(f"Debug: Delivery {delivery.id}: delivery=({delivery.delivery_location[0]:.4f}, {delivery.delivery_location[1]:.4f}) -> no {delivery.delivery_node}")
+            
+            if delivery.delivery_node not in node_mapping:
+                node_mapping[delivery.delivery_node] = []
+            node_mapping[delivery.delivery_node].append(delivery.id)
+        
+        for node, delivery_ids in node_mapping.items():
+            if len(delivery_ids) > 1:
+                print(f"Atencao: Multiplas rotas ({delivery_ids}) apontam pro mesmo no {node}")
+        
+        depot_node = self.graph_parser.get_closest_node(depot_location[0], depot_location[1])
+        print(f"Debug: Deposito ({depot_location[0]:.4f}, {depot_location[1]:.4f}) -> no {depot_node}")
+        return depot_node
     
     def _validate_routes(self, routes: List[Route], vehicles: List[Vehicle]):
         """Valida se as rotas são viáveis."""

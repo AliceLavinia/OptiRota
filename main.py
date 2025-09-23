@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 OptiRota - Sistema de Otimização de Rotas
 Exemplo de uso do módulo VRP
@@ -17,7 +16,14 @@ def main():
     graph_parser = GraphParser(location)
     
     print(f"Parser configurado para: {location}")
-    print("(Em produção, chame graph_parser.build_graph() para baixar dados reais)\n")
+    print("Baixando dados reais do OpenStreetMap...")
+    
+    try:
+        graph_parser.build_graph()
+        print("Grafo construído com sucesso!\n")
+    except Exception as e:
+        print(f"Erro ao construir grafo: {e}")
+        print("Continuando com dados simulados...\n")
     
     print("2. Configurando frota de veículos...")
     vehicles = [
@@ -42,14 +48,14 @@ def main():
         DeliveryRequest(
             id=2,
             pickup_location=(-23.5505, -46.6333),
-            delivery_location=(-23.5489, -46.6388),
+            delivery_location=(-23.5489, -46.6288),
             weight=40.0,
             priority=2
         ),
         DeliveryRequest(
             id=3,
             pickup_location=(-23.5505, -46.6333),
-            delivery_location=(-23.5329, -46.6399),
+            delivery_location=(-23.5329, -46.6399), 
             weight=60.0,
             priority=1
         ),

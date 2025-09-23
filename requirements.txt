@@ -6,7 +6,9 @@ osmnx
 networkx
 # Para cálculos de distância geográfica
 haversine
+# Para computação numérica e matrizes
+numpy
 # Pandas para manipulação de dados
-Pandas
+pandas
 # Para visualização dos grafos
 matplotlib

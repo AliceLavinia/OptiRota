@@ -5,10 +5,10 @@ Utiliza heurística de Haversine para estimar distâncias geográficas.
 
 from typing import List, Dict, Tuple, Optional, Set
 import networkx as nx
-from datastructures import filaPrioridade, Pilha
+from .datastructures import filaPrioridade, Pilha
 import math
 
-from dijkstra import find_path_dijkstra
+from OptiRota.algorithms.dijkstra import find_path_dijkstra
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """

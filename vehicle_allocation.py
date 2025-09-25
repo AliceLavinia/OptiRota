@@ -160,7 +160,7 @@ class VehicleAllocationManager:
                 request.client.node_id
             )
         else:
-            from a_star import get_shortest_distance_a_star
+            from OptiRota.algorithms.a_star import get_shortest_distance_a_star
             cost = get_shortest_distance_a_star(
                 self.graph,
                 vehicle.current_node,

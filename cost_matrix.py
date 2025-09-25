@@ -6,8 +6,8 @@ Utiliza A* para eficiência na construção de matrizes de distância entre múl
 from typing import List, Dict
 import networkx as nx
 import numpy as np
-from a_star import find_path_a_star, get_shortest_distance_a_star
-from dijkstra import find_path_dijkstra, get_shortest_distance
+from OptiRota.algorithms.a_star import find_path_a_star, get_shortest_distance_a_star
+from OptiRota.algorithms.dijkstra import find_path_dijkstra, get_shortest_distance
 
 def compute_cost_matrix(graph: nx.DiGraph, 
                        nodes: List[int], 

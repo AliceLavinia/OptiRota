@@ -1,10 +1,10 @@
 from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass
-from datastructures import filaPrioridade, Fila, Pilha
+from OptiRota.algorithms.datastructures import filaPrioridade, Fila, Pilha
 import networkx as nx
 from abc import ABC, abstractmethod
-from dijkstra import find_path_dijkstra
-from a_star import find_path_a_star
+from OptiRota.algorithms.dijkstra import find_path_dijkstra
+from OptiRota.algorithms.a_star import find_path_a_star
 
 @dataclass
 class DeliveryRequest:

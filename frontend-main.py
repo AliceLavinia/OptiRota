@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import math
-import threading  # Importado para carregar o mapa sem travar a UI
+import threading
+import tkintermapview  # <-- NOVO IMPORT
+from typing import Tuple
 
 # --- Imports do Backend ---
 try:
@@ -25,24 +27,20 @@ class RouteOptimizerGUI:
         self.root = root
         self.root.title("OptiRota - Otimizador de Rotas")
         self.root.geometry("1200x800")
-        # Removida cor de fundo fixa para permitir tema nativo (Dark Mode)
-        # self.root.configure(bg="#f0f0f0")
 
-        # --- Estado do Backend ---
         self.graph_parser = None
         self.graph = None
-        self.bbox = None  # (min_lon, min_lat, max_lon, max_lat) Bounding box do mapa
-
+        self.bbox = None  # (min_lon, min_lat, max_lon, max_lat)
         self.points = []
         self.point_nodes = {}
         self.route_nodes = []
         self.multi_stop_route = []
-        # --- Fim do Estado ---
+        self_map_widget = None  # Widget do mapa
 
         self.create_widgets()
 
     def create_widgets(self):
-        main_frame = tk.Frame(self.root)  # Removido: bg="#f0f0f0"
+        main_frame = tk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # --- Frame de Carregamento do Mapa ---
@@ -50,31 +48,26 @@ class RouteOptimizerGUI:
             main_frame,
             text="1. Carregar Mapa (OSM)",
             font=("Arial", 10, "bold"),
-            # Removido: bg="white"
             padx=15,
             pady=10
         )
         map_load_frame.pack(fill=tk.X, pady=(0, 10))
 
-        tk.Label(map_load_frame, text="Localização (Ex: 'São Paulo, Brazil'):").pack(side=tk.LEFT,
-                                                                                     padx=5)  # Removido: bg="white"
+        tk.Label(map_load_frame, text="Localização:").pack(side=tk.LEFT, padx=5)
         self.location_entry = tk.Entry(map_load_frame, width=40)
-
-        # CORREÇÃO: Localização padrão Jatiúca (mais estável que Ponta Verde)
         self.location_entry.insert(0, "Jatiúca, Maceió")
         self.location_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
-        # CORREÇÃO: Removidas cores bg/fg para legibilidade no Dark Mode
         self.btn_load_map = tk.Button(
             map_load_frame,
             text="Carregar Mapa",
             font=("Arial", 10, "bold"),
             cursor="hand2",
-            command=self.start_map_load_thread  # CORREÇÃO: Threading
+            command=self.start_map_load_thread
         )
         self.btn_load_map.pack(side=tk.LEFT, padx=10)
 
-        self.load_status_label = tk.Label(map_load_frame, text="")  # Removido: bg="white"
+        self.load_status_label = tk.Label(map_load_frame, text="")
         self.load_status_label.pack(side=tk.LEFT, padx=5)
         # --- Fim do Frame de Carregamento ---
 
@@ -82,36 +75,32 @@ class RouteOptimizerGUI:
             main_frame,
             text="2. Parâmetros de Busca",
             font=("Arial", 10, "bold"),
-            # Removido: bg="white"
             padx=15,
             pady=15
         )
         params_frame.pack(fill=tk.X, pady=(0, 10))
 
-        inputs_grid = tk.Frame(params_frame)  # Removido: bg="white"
+        inputs_grid = tk.Frame(params_frame)
         inputs_grid.pack(fill=tk.X)
 
-        # CORREÇÃO: Removido bg="white" das Labels
         tk.Label(inputs_grid, text="Latitude Inicial:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
         self.lat_inicial = tk.Entry(inputs_grid, width=15)
-        # CORREÇÃO: Coordenadas padrão (Jatiúca)
-        self.lat_inicial.insert(0, "-9.6582")
+        self.lat_inicial.insert(0, "-9.6582")  # Jatiúca
         self.lat_inicial.grid(row=0, column=1, padx=5, pady=5)
 
         tk.Label(inputs_grid, text="Longitude Inicial:").grid(row=0, column=2, sticky="w", padx=5, pady=5)
         self.lon_inicial = tk.Entry(inputs_grid, width=15)
-        self.lon_inicial.insert(0, "-35.7032")
+        self.lon_inicial.insert(0, "-35.7032")  # Jatiúca
         self.lon_inicial.grid(row=0, column=3, padx=5, pady=5)
 
         tk.Label(inputs_grid, text="Latitude Final:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
         self.lat_final = tk.Entry(inputs_grid, width=15)
-        # CORREÇÃO: Coordenadas padrão (Aeroporto)
-        self.lat_final.insert(0, "-9.5108")
+        self.lat_final.insert(0, "-9.5108")  # Aeroporto
         self.lat_final.grid(row=1, column=1, padx=5, pady=5)
 
         tk.Label(inputs_grid, text="Longitude Final:").grid(row=1, column=2, sticky="w", padx=5, pady=5)
         self.lon_final = tk.Entry(inputs_grid, width=15)
-        self.lon_final.insert(0, "-35.7899")
+        self.lon_final.insert(0, "-35.7899")  # Aeroporto
         self.lon_final.grid(row=1, column=3, padx=5, pady=5)
 
         tk.Label(inputs_grid, text="Modo de Viagem:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
@@ -126,10 +115,9 @@ class RouteOptimizerGUI:
         self.algoritmo.current(0)
         self.algoritmo.grid(row=2, column=3, padx=5, pady=5)
 
-        btn_frame = tk.Frame(params_frame)  # Removido: bg="white"
+        btn_frame = tk.Frame(params_frame)
         btn_frame.pack(pady=10)
 
-        # CORREÇÃO: Removidas cores bg/fg
         self.btn_encontrar = tk.Button(
             btn_frame,
             text="Encontrar Caminho",
@@ -142,29 +130,32 @@ class RouteOptimizerGUI:
         )
         self.btn_encontrar.pack()
 
-        results_container = tk.Frame(main_frame)  # Removido: bg="#f0f0f0"
+        results_container = tk.Frame(main_frame)
         results_container.pack(fill=tk.BOTH, expand=True)
 
         left_frame = tk.LabelFrame(
             results_container,
             text="3. Visualização do Mapa",
             font=("Arial", 10, "bold"),
-            # Removido: bg="white"
             padx=10,
             pady=10
         )
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
 
-        # CORREÇÃO: Fundo do canvas alterado para melhor visualização (neutro)
-        self.canvas = tk.Canvas(left_frame, bg="#e8f4f8", highlightthickness=1, highlightbackground="#ccc")
-        self.canvas.pack(fill=tk.BOTH, expand=True)
-        self.canvas.bind("<Button-1>", self.add_point_click)
+        # --- SUBSTITUIÇÃO DO CANVAS ---
+        # self.canvas = tk.Canvas(...) foi removido.
+        self.map_widget = tkintermapview.TkinterMapView(left_frame, width=800, height=600, corner_radius=0)
+        self.map_widget.pack(fill=tk.BOTH, expand=True)
+        # Seta um tile server (OpenStreetMap)
+        self.map_widget.set_tile_server("https://a.tile.openstreetmap.org/{z}/{x}/{y}.png")
+        # Adiciona comando de clique
+        self.map_widget.add_left_click_map_command(self.on_map_click)
+        # --- FIM DA SUBSTITUIÇÃO ---
 
         right_frame = tk.LabelFrame(
             results_container,
             text="4. Resultados e Ações",
             font=("Arial", 10, "bold"),
-            # Removido: bg="white"
             padx=10,
             pady=10
         )
@@ -172,12 +163,10 @@ class RouteOptimizerGUI:
         right_frame.configure(width=350)
         right_frame.pack_propagate(False)
 
-        info_frame = tk.Frame(right_frame)  # Removido: bg="white"
+        info_frame = tk.Frame(right_frame)
         info_frame.pack(fill=tk.X, pady=5)
 
-        # CORREÇÃO: Removido bg="white" das Labels
         tk.Label(info_frame, text="Distância Total:", font=("Arial", 9, "bold")).pack(anchor="w")
-        # CORREÇÃO: Removido bg="white" e fg="..."
         self.lbl_distancia = tk.Label(info_frame, text="0.0 km", font=("Arial", 11))
         self.lbl_distancia.pack(anchor="w", pady=2)
 
@@ -192,21 +181,19 @@ class RouteOptimizerGUI:
         tk.Label(right_frame, text="Coordenadas (Pontos de Parada):", font=("Arial", 9, "bold")).pack(anchor="w",
                                                                                                       pady=(15, 5))
 
-        coords_frame = tk.Frame(right_frame)  # Removido: bg="white"
+        coords_frame = tk.Frame(right_frame)
         coords_frame.pack(fill=tk.BOTH, expand=True)
 
         scrollbar = tk.Scrollbar(coords_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.coords_listbox = tk.Listbox(coords_frame, yscrollcommand=scrollbar.set,
-                                         font=("Courier", 9))  # Removido: bg="#f9f9f9"
+        self.coords_listbox = tk.Listbox(coords_frame, yscrollcommand=scrollbar.set, font=("Courier", 9))
         self.coords_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=self.coords_listbox.yview)
 
-        control_frame = tk.Frame(right_frame)  # Removido: bg="white"
+        control_frame = tk.Frame(right_frame)
         control_frame.pack(fill=tk.X, pady=(10, 0))
 
-        # CORREÇÃO: Removidas cores bg/fg
         self.btn_add_point = tk.Button(control_frame, text="Adicionar Ponto (Manual)", command=self.add_point_manual,
                                        font=("Arial", 9), state=tk.DISABLED)
         self.btn_add_point.pack(fill=tk.X, pady=2)
@@ -222,41 +209,12 @@ class RouteOptimizerGUI:
 
     # --- Funções de Mapeamento de Coordenadas ---
 
-    # CORREÇÃO: Bug do "if not self.bbox" (ambiguidade do NumPy)
-    def latlon_to_pixel(self, lat, lon):
-        """Converte (lat, lon) para (x, y) no canvas baseado no BBox."""
-        if self.bbox is None:
-            return 0, 0
-        w, h = self.canvas.winfo_width(), self.canvas.winfo_height()
-        min_lon, min_lat, max_lon, max_lat = self.bbox
-
-        if max_lon == min_lon: max_lon += 0.001
-        if max_lat == min_lat: max_lat += 0.001
-
-        x = (lon - min_lon) * w / (max_lon - min_lon)
-        y = (max_lat - lat) * h / (max_lat - min_lat)  # Eixo Y invertido
-        return int(x), int(y)
-
-    # CORREÇÃO: Bug do "if not self.bbox" (ambiguidade do NumPy)
-    def pixel_to_latlon(self, x, y):
-        """Converte (x, y) do canvas para (lat, lon) baseado no BBox."""
-        if self.bbox is None:
-            return 0, 0
-        w, h = self.canvas.winfo_width(), self.canvas.winfo_height()
-        min_lon, min_lat, max_lon, max_lat = self.bbox
-
-        if w == 0: w = 1
-        if h == 0: h = 1
-
-        lon = (x * (max_lon - min_lon) / w) + min_lon
-        lat = max_lat - (y * (max_lat - min_lat) / h)
-        return lat, lon
+    # As funções latlon_to_pixel e pixel_to_latlon foram REMOVIDAS
+    # pois o tkintermapview não precisa delas.
 
     # --- Funções do Backend e Lógica ---
 
-    # CORREÇÃO: Funções de Threading para carregamento seguro
     def start_map_load_thread(self):
-        """Inicia o carregamento do mapa em uma thread separada."""
         location = self.location_entry.get()
         if not location:
             messagebox.showerror("Erro", "Por favor, insira uma localização.")
@@ -270,7 +228,6 @@ class RouteOptimizerGUI:
                          daemon=True).start()
 
     def load_map_background(self, location: str):
-        """Lógica de carregamento do mapa (executa na thread de background)."""
         try:
             parser = GraphParser(location)
             graph = parser.build_graph()
@@ -285,7 +242,6 @@ class RouteOptimizerGUI:
             self.root.after(0, self.on_map_load_failure, e)
 
     def on_map_load_success(self, result: tuple):
-        """Executa na thread PRINCIPAL ao carregar o mapa com sucesso."""
         self.graph_parser, self.graph, self.bbox = result
 
         self.btn_encontrar.config(state=tk.NORMAL)
@@ -295,14 +251,22 @@ class RouteOptimizerGUI:
         self.load_status_label.config(text="Mapa Carregado!", fg="green")
         self.btn_load_map.config(state=tk.NORMAL)
 
+        # --- ATUALIZAÇÃO DO MAPA ---
+        min_lon, min_lat, max_lon, max_lat = self.bbox
+
+        # CORREÇÃO: A biblioteca espera (Top-Left) e (Bottom-Right)
+        top_left = (max_lat, min_lon)
+        bottom_right = (min_lat, max_lon)
+
+        self.map_widget.fit_bounding_box(top_left, bottom_right)
+        # --- FIM DA ATUALIZAÇÃO ---
+
     def on_map_load_failure(self, error: Exception):
-        """Executa na thread PRINCIPAL se o carregamento falhar."""
         self.load_status_label.config(text="Erro!", fg="red")
         self.btn_load_map.config(state=tk.NORMAL)
         messagebox.showerror("Erro ao Carregar Mapa", f"Não foi possível carregar o mapa: {error}")
 
     def encontrar_caminho(self):
-        """Encontra e desenha o caminho ponto-a-ponto usando A* ou Dijkstra."""
         if self.graph is None:
             messagebox.showwarning("Aviso", "Carregue um mapa primeiro!")
             return
@@ -319,7 +283,7 @@ class RouteOptimizerGUI:
             algo = self.algoritmo.get()
             if algo == "A*":
                 path_nodes, distance_meters = find_path_a_star(self.graph, node1, node2)
-            else:  # Dijkstra
+            else:
                 path_nodes, distance_meters = find_path_dijkstra(self.graph, node1, node2)
 
             if not path_nodes or distance_meters == float('inf'):
@@ -328,11 +292,8 @@ class RouteOptimizerGUI:
 
             self.clear_map(draw=False)
             self.points = [(lat1, lon1), (lat2, lon2)]
-
-            # CORREÇÃO: Bug do KeyError na otimização
             self.point_nodes[(lat1, lon1)] = node1
             self.point_nodes[(lat2, lon2)] = node2
-
             self.route_nodes = path_nodes
 
             self.draw_map()
@@ -347,7 +308,6 @@ class RouteOptimizerGUI:
             messagebox.showerror("Erro no Cálculo", f"Ocorreu um erro: {e}")
 
     def optimize_route(self):
-        """Otimiza uma rota com múltiplos pontos (Heurística Nearest Neighbor)."""
         if self.graph is None:
             messagebox.showwarning("Aviso", "Carregue um mapa primeiro!")
             return
@@ -359,9 +319,10 @@ class RouteOptimizerGUI:
         self.route_nodes = []
         self.multi_stop_route = []
 
+        # Copia os pontos para não bagunçar a ordem original do usuário
         unvisited_points = self.points.copy()
         current_point = unvisited_points.pop(0)
-        ordered_points = [current_point]
+        ordered_points = [current_point]  # A rota otimizada começa no primeiro ponto
 
         total_distance_meters = 0
 
@@ -396,7 +357,8 @@ class RouteOptimizerGUI:
                 ordered_points.append(current_point)
                 unvisited_points.remove(nearest_point)
 
-            self.points = ordered_points
+            # NOTE: self.points não é reordenado, para manter a ordem do usuário.
+            # Apenas desenhamos a rota otimizada.
             self.draw_map()
             self.update_info(distance_km=(total_distance_meters / 1000.0),
                              num_points=len(self.points))
@@ -407,15 +369,15 @@ class RouteOptimizerGUI:
 
     # --- Funções Auxiliares da UI ---
 
-    def add_point_click(self, event):
+    # ESTA É A NOVA FUNÇÃO DE CLIQUE
+    def on_map_click(self, coords: Tuple[float, float]):
         """Adiciona um ponto de parada ao clicar no mapa."""
         if self.graph is None:
             messagebox.showwarning("Aviso", "Carregue um mapa primeiro!")
             return
 
         try:
-            x, y = event.x, event.y
-            lat, lon = self.pixel_to_latlon(x, y)
+            lat, lon = coords[0], coords[1]
 
             node_id = self.graph_parser.get_closest_node(lat, lon)
             self.points.append((lat, lon))
@@ -437,13 +399,12 @@ class RouteOptimizerGUI:
         dialog = tk.Toplevel(self.root)
         dialog.title("Adicionar Ponto")
         dialog.geometry("300x150")
-        # Removido: dialog.configure(bg="white")
 
-        tk.Label(dialog, text="Latitude:").pack(pady=5)  # Removido: bg="white"
+        tk.Label(dialog, text="Latitude:").pack(pady=5)
         lat_entry = tk.Entry(dialog)
         lat_entry.pack()
 
-        tk.Label(dialog, text="Longitude:").pack(pady=5)  # Removido: bg="white"
+        tk.Label(dialog, text="Longitude:").pack(pady=5)
         lon_entry = tk.Entry(dialog)
         lon_entry.pack()
 
@@ -465,58 +426,61 @@ class RouteOptimizerGUI:
             except Exception as e:
                 messagebox.showerror("Erro", f"Não foi possível adicionar o ponto: {e}")
 
-        tk.Button(dialog, text="Adicionar", command=add).pack(pady=10)  # Removido: bg, fg
+        tk.Button(dialog, text="Adicionar", command=add).pack(pady=10)
 
-    # CORREÇÃO: Sempre desenhar a grade
+    # ESTA FUNÇÃO FOI TOTALMENTE REESCRITA
     def draw_map(self):
-        """Redesenha o canvas com todos os elementos (rotas e pontos)."""
-        self.canvas.delete("all")
+        """Redesenha o widget do mapa com todos os elementos (rotas e pontos)."""
 
-        # Sempre desenha a grade de fundo
-        w, h = self.canvas.winfo_width(), self.canvas.winfo_height()
-        if w > 0 and h > 0:
-            for i in range(0, w, 50): self.canvas.create_line(i, 0, i, h, fill="#d0e8f0", width=1)
-            for i in range(0, h, 50): self.canvas.create_line(0, i, w, i, fill="#d0e8f0", width=1)
+        # Limpa marcadores e rotas antigas
+        self.map_widget.delete_all_marker()
+        self.map_widget.delete_all_path()
 
         if self.graph is None:
             return
 
+        # 1. Desenha o caminho ponto-a-ponto (se existir)
         if self.route_nodes:
-            pixel_path = []
+            # Converte lista de nós em lista de (lat, lon)
+            path_coordinates = []
             for node_id in self.route_nodes:
                 node_data = self.graph.nodes[node_id]
-                lat, lon = node_data['y'], node_data['x']
-                pixel_path.append(self.latlon_to_pixel(lat, lon))
-            self.canvas.create_line(pixel_path, fill="#0066cc", width=3, arrow=tk.LAST)
+                path_coordinates.append((node_data['y'], node_data['x']))
 
+            # Desenha o caminho no mapa
+            if path_coordinates:
+                self.map_widget.set_path(path_coordinates, color="#0066cc", width=3)
+
+        # 2. Desenha a rota multi-pontos (se existir)
         if self.multi_stop_route:
             for path_segment in self.multi_stop_route:
-                pixel_path_segment = []
+                # Converte lista de nós em lista de (lat, lon)
+                segment_coordinates = []
                 for node_id in path_segment:
                     node_data = self.graph.nodes[node_id]
-                    lat, lon = node_data['y'], node_data['x']
-                    pixel_path_segment.append(self.latlon_to_pixel(lat, lon))
-                self.canvas.create_line(pixel_path_segment, fill="#ffc107", width=3, arrow=tk.LAST)
+                    segment_coordinates.append((node_data['y'], node_data['x']))
 
+                # Desenha o segmento no mapa
+                if segment_coordinates:
+                    self.map_widget.set_path(segment_coordinates, color="#ffc107", width=3)
+
+        # 3. Desenha os pontos de parada (self.points)
         for i, (lat, lon) in enumerate(self.points):
-            x, y = self.latlon_to_pixel(lat, lon)
-            color = "#ff0000" if i == 0 else "#0066cc"
-            if self.multi_stop_route and i == len(self.points) - 1:
-                color = "#00ff00"
+            self.map_widget.set_marker(lat, lon, text=f"{i + 1}")
 
-            self.canvas.create_oval(x - 6, y - 6, x + 6, y + 6, fill=color, outline="white", width=2)
-            self.canvas.create_text(x, y - 15, text=str(i + 1), font=("Arial", 9, "bold"), fill=color)
-
-    # CORREÇÃO: Bug do "0 min"
     def update_info(self, distance_km=0.0, num_points=0):
         """Atualiza os labels de informação e a lista de coordenadas."""
         self.lbl_distancia.config(text=f"{distance_km:.2f} km")
 
         velocidades = {"car": 60, "bike": 20, "pedestrian": 5, "truck": 50}
+
+        # --- CORREÇÃO AQUI ---
+        # Trocado 'velocities.get' por 'velocidades.get'
         vel = velocidades.get(self.modo_viagem.get(), 60)
+        # --- FIM DA CORREÇÃO ---
+
         tempo = (distance_km / vel) * 60 if distance_km > 0 else 0
 
-        # Mudado de ':.0f' para ':.1f' para mostrar uma casa decimal
         self.lbl_tempo.config(text=f"{tempo:.1f} min")
 
         self.lbl_pontos.config(text=str(num_points))
@@ -534,7 +498,7 @@ class RouteOptimizerGUI:
 
         if draw:
             self.draw_map()
-        self.update_info()
+        self.update_info()  # Reseta os labels para 0
 
 
 if __name__ == "__main__":

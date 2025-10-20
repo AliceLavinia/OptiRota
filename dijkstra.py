@@ -7,65 +7,82 @@ from typing import List, Dict, Tuple, Optional, Set
 import networkx as nx
 from datastructures import filaPrioridade, Pilha
 
-def find_path_dijkstra(graph: nx.DiGraph, 
-                      start: int, 
-                      end: int) -> Tuple[List[int], float]:
+
+def find_path_dijkstra(graph: nx.DiGraph,
+                       start: int,
+                       end: int) -> Tuple[List[int], float]:
     """
     Encontra o caminho mínimo entre dois nós usando o algoritmo de Dijkstra.
-    
+
     Args:
         graph: Grafo dirigido e ponderado (NetworkX)
         start: Nó de origem
         end: Nó de destino
-        
+
     Returns:
         Tuple contendo (caminho, distância_total)
         Se não houver caminho, retorna ([], float('inf'))
     """
     if start == end:
         return [start], 0.0
-    
+
     if not graph.has_node(start) or not graph.has_node(end):
         return [], float('inf')
-    
+
     distances = {node: float('inf') for node in graph.nodes()}
     predecessors = {node: None for node in graph.nodes()}
     visited = set()
-    
+
     distances[start] = 0.0
     priority_queue = filaPrioridade()
     priority_queue.put(start, 0.0)
-    
+
     while not priority_queue.is_empty():
         current = priority_queue.get()
-        
+
         if current in visited:
             continue
-            
+
         visited.add(current)
-        
+
         if current == end:
             break
-        
-        for neighbor in graph.neighbors(current):
+
+        # --- INÍCIO DA CORREÇÃO ---
+        # Iteramos sobre 'graph.adj' para um MultiDiGraph
+        # 'graph.neighbors(current)' não é suficiente
+
+        if current not in graph.adj:
+            continue
+
+        for neighbor, edges in graph.adj[current].items():
             if neighbor in visited:
                 continue
-                
-            edge_data = graph.get_edge_data(current, neighbor)
-            if not edge_data:
-                continue
-                
-            edge_weight = edge_data.get('length', edge_data.get('weight', 1.0))
+
+            # 'edges' é um dicionário de todas as arestas (ex: {0: data, 1: data})
+            # Vamos encontrar a aresta com o menor 'length'
+
+            best_weight = float('inf')
+            for edge_data in edges.values():
+                weight = edge_data.get('length', edge_data.get('weight', float('inf')))
+                if weight < best_weight:
+                    best_weight = weight
+
+            if best_weight == float('inf'):
+                continue  # Nenhuma aresta com 'length' ou 'weight' foi encontrada
+
+            edge_weight = best_weight
             new_distance = distances[current] + edge_weight
-            
+
             if new_distance < distances[neighbor]:
                 distances[neighbor] = new_distance
                 predecessors[neighbor] = current
                 priority_queue.put(neighbor, new_distance)
-    
+        # --- FIM DA CORREÇÃO ---
+
     if distances[end] == float('inf'):
         return [], float('inf')
-    
+
     path = reconstruct_path(predecessors, start, end)
     return path, distances[end]
 

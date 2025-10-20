@@ -84,15 +84,6 @@ def find_path_a_star(graph: nx.DiGraph,
                      end: int) -> Tuple[List[int], float]:
     """
     Encontra o caminho mínimo entre dois nós usando o algoritmo A*.
-
-    Args:
-        graph: Grafo dirigido e ponderado com coordenadas geográficas
-        start: Nó de origem
-        end: Nó de destino
-
-    Returns:
-        Tuple contendo (caminho, distância_total)
-        Se não houver caminho, retorna ([], float('inf'))
     """
     if start == end:
         return [start], 0.0
@@ -122,36 +113,53 @@ def find_path_a_star(graph: nx.DiGraph,
         if current == end:
             break
 
-        # --- INÍCIO DA CORREÇÃO ---
-        # Iteramos sobre 'graph.adj' para um MultiDiGraph
-
         if current not in graph.adj:
             continue
 
-        for neighbor, edges in graph.adj[current].items():
-            if neighbor in visited:
-                continue
+        # --- INÍCIO DA CORREÇÃO ---
+        # Verifica se o grafo é um MultiGraph (do osmnx) ou um DiGraph (dos testes)
 
-            # 'edges' é um dicionário de todas as arestas (ex: {0: data, 1: data})
-            # Vamos encontrar a aresta com o menor 'length'
+        if graph.is_multigraph():
+            # Lógica para MultiDiGraph (usado pelo app)
+            for neighbor, edges in graph.adj[current].items():
+                if neighbor in visited:
+                    continue
 
-            best_weight = float('inf')
-            for edge_data in edges.values():
-                weight = edge_data.get('length', edge_data.get('weight', float('inf')))
-                if weight < best_weight:
-                    best_weight = weight
+                # Encontra a aresta com menor 'length' entre os dois nós
+                best_weight = float('inf')
+                for edge_data in edges.values():
+                    weight = edge_data.get('length', edge_data.get('weight', float('inf')))
+                    if weight < best_weight:
+                        best_weight = weight
 
-            if best_weight == float('inf'):
-                continue
+                if best_weight == float('inf'):
+                    continue
 
-            edge_weight = best_weight
-            tentative_g_score = g_score[current] + edge_weight
+                edge_weight = best_weight
+                tentative_g_score = g_score[current] + edge_weight
 
-            if tentative_g_score < g_score[neighbor]:
-                predecessors[neighbor] = current
-                g_score[neighbor] = tentative_g_score
-                f_score[neighbor] = g_score[neighbor] + calculate_heuristic(graph, neighbor, end)
-                priority_queue.put(neighbor, f_score[neighbor])
+                if tentative_g_score < g_score[neighbor]:
+                    predecessors[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = g_score[neighbor] + calculate_heuristic(graph, neighbor, end)
+                    priority_queue.put(neighbor, f_score[neighbor])
+        else:
+            # Lógica para DiGraph simples (usado pelos testes unitários)
+            for neighbor, edge_data in graph.adj[current].items():
+                if neighbor in visited:
+                    continue
+
+                edge_weight = edge_data.get('length', edge_data.get('weight', 1.0))
+                if edge_weight == float('inf'):
+                    continue
+
+                tentative_g_score = g_score[current] + edge_weight
+
+                if tentative_g_score < g_score[neighbor]:
+                    predecessors[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score[neighbor] = g_score[neighbor] + calculate_heuristic(graph, neighbor, end)
+                    priority_queue.put(neighbor, f_score[neighbor])
         # --- FIM DA CORREÇÃO ---
 
     if g_score[end] == float('inf'):

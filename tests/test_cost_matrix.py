@@ -278,23 +278,30 @@ class TestCostMatrixUtilities(unittest.TestCase):
             # Remove arquivo temporário
             if os.path.exists(tmp_filename):
                 os.unlink(tmp_filename)
-    
+
     def test_export_cost_matrix_empty(self):
         """Testa exportação de matriz vazia."""
         import tempfile
         import os
-        
+
+        # Cria arquivo temporário
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp_file:
             tmp_filename = tmp_file.name
-        
+
+        # --- CORREÇÃO AQUI ---
+        # Deletamos o arquivo que o 'tempfile' criou
+        if os.path.exists(tmp_filename):
+            os.unlink(tmp_filename)
+        # --- FIM DA CORREÇÃO ---
+
         try:
-            # Não deve criar arquivo para matriz vazia
+            # Chama a função (que não deve fazer nada)
             export_cost_matrix(np.array([]), {}, tmp_filename)
+
+            # Agora sim, verificamos que o arquivo não foi criado
             self.assertFalse(os.path.exists(tmp_filename))
-            
+
         finally:
+            # Limpa caso algo dê errado
             if os.path.exists(tmp_filename):
                 os.unlink(tmp_filename)
-
-if __name__ == '__main__':
-    unittest.main()

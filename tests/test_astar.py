@@ -19,29 +19,36 @@ from a_star import (
     compare_algorithms_performance
 )
 
+
 class TestHaversineDistance(unittest.TestCase):
     """Testa cálculo de distância Haversine."""
-    
+
     def test_haversine_distance_same_point(self):
         """Testa distância entre o mesmo ponto."""
         distance = haversine_distance(0.0, 0.0, 0.0, 0.0)
         self.assertEqual(distance, 0.0)
-    
+
     def test_haversine_distance_known_distance(self):
-        """Testa distância conhecida (São Paulo para Rio de Janeiro)."""
+        """Testa distância conhecida (São Paulo para Rio de Janeiro) EM METROS."""
         distance = haversine_distance(-23.5505, -46.6333, -22.9068, -43.1729)
-        self.assertAlmostEqual(distance, 358.0, delta=10.0)
-    
+        # Antigo (KM): self.assertAlmostEqual(distance, 358.0, delta=10.0)
+        # Novo (METROS):
+        self.assertAlmostEqual(distance, 360748.8, delta=10000.0)  # Delta de 10km
+
     def test_haversine_distance_short_distance(self):
         """Testa distância curta (poucos metros)."""
         distance = haversine_distance(0.0, 0.0, 0.0001, 0.0001)
-        self.assertGreater(distance, 0.0)
-        self.assertLess(distance, 1.0)
-    
+        # Antigo (KM): self.assertLess(distance, 1.0)
+        # Novo (METROS):
+        self.assertGreater(distance, 10.0)  # É ~15.7 metros
+        self.assertLess(distance, 20.0)  # É ~15.7 metros
+
     def test_haversine_distance_antipodes(self):
-        """Testa distância entre pontos antípodas."""
+        """Testa distância entre pontos antípodas (EM METROS)."""
         distance = haversine_distance(0.0, 0.0, 0.0, 180.0)
-        self.assertAlmostEqual(distance, 20015.0, delta=100.0)  # ~metade da circunferência da Terra
+        # Antigo (KM): self.assertAlmostEqual(distance, 20015.0, delta=100.0)
+        # Novo (METROS):
+        self.assertAlmostEqual(distance, 20015086.8, delta=100000.0)  # Delta de 100km
 
 class TestNodeCoordinates(unittest.TestCase):
     """Testa extração de coordenadas de nós."""

@@ -28,7 +28,8 @@ A arquitetura do sistema conecta os dados reais do OSM a um grafo dirigido e pon
 * **Estruturas de Dados**: *Priority Queue* (heap binário), *Queue* (FIFO), *Stack* (LIFO).
 * **Algoritmos**: Dijkstra (baseline) e A\* (informado, heurística admissível: distância em linha reta).
 * **VRP (CVRP + VRPTW)** por heurística construtiva (Vizinho Mais Próximo + Inserção).
-* **QA**: testes de correção,
+* **QA**: testes de correção.
+* **Tkinter**: Biblioteca responsável pela interface gráfica.
 
 
 

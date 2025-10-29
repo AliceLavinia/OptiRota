@@ -6,8 +6,9 @@ def test_basic_functionality():
     """Testa funcionalidade básica dos algoritmos."""
     try:
         import networkx as nx
-        from dijkstra import find_path_dijkstra
-        from a_star import find_path_a_star
+        from algorithms.dijkstra import find_path_dijkstra
+        from algorithms.a_star import find_path_a_star
+        from cost_matrix import compute_cost_matrix
         
         graph = nx.DiGraph()
         graph.add_nodes_from([0, 1, 2, 3])

@@ -5,7 +5,7 @@ Utiliza heap (fila de prioridade) para eficiência O((V + E) log V).
 
 from typing import List, Dict, Tuple, Optional, Set
 import networkx as nx
-from datastructures import filaPrioridade, Pilha
+from .datastructures import filaPrioridade, Pilha
 
 def find_path_dijkstra(graph: nx.DiGraph, 
                       start: int, 

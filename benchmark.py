@@ -2,8 +2,8 @@ import time
 import random
 import pandas as pd
 from graph_parser import GraphParser
-from dijkstra import find_path_dijkstra
-from a_star import find_path_a_star
+from OptiRota.algorithms.dijkstra import find_path_dijkstra
+from OptiRota.algorithms.a_star import find_path_a_star
 
 # Lista de locais para testar, do menor para o maior
 LOCATIONS_TO_BENCHMARK = {

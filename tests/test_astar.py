@@ -9,7 +9,7 @@ import networkx as nx
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from a_star import (
+from OptiRota.algorithms.a_star import (
     haversine_distance,
     get_node_coordinates,
     calculate_heuristic,

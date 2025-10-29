@@ -12,7 +12,7 @@ import numpy as np
 # Adiciona o diretório pai ao path para importar módulos
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dijkstra import (
+from OptiRota.algorithms.dijkstra import (
     find_path_dijkstra, 
     reconstruct_path, 
     get_shortest_distance,
